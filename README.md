@@ -19,7 +19,7 @@
 
 ## 🛠️ Installation
 
-You can install **Termux Penv** with a single command:
+1 - You can install **Termux Penv** with a single command:
 
 ```bash
 curl -sL https://github.com/Anon4You/termux-penv/raw/main/install.sh | bash
@@ -29,6 +29,13 @@ This will:
 1. Download and run the `install.sh` script. 📥
 2. Install the `termux-penv` script to `$PREFIX/bin`. 📂
 3. Place all required scripts in `$PREFIX/share/termux-penv`. 🗂️
+
+2 - **Install from alienkrishn repo**
+**Ensure you have the [Alienkrishn repository](https://github.com/Anon4You/alienkrishn.git) added to your Termux.**
+
+```
+apt install termux-penv -y 
+```
 
 ---
 
