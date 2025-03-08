@@ -1,0 +1,90 @@
+#!/data/data/com.termux/files/usr/bin/env bash
+
+# Script Name: termux-penv
+# Description: Manage Termux 32-bit and 64-bit chroot environments.
+
+# Directory containing scripts
+SCRIPT_DIR="$PREFIX/share/termux-penv"
+
+# Usage Text
+usage() {
+    echo "Usage: termux-penv [command] [environment]"
+    echo "Commands:"
+    echo "  i, install   - Install a chroot environment (termux32 or termux64)"
+    echo "  l, login     - Login to a chroot environment (termux32 or termux64)"
+    echo "  r, remove    - Remove a chroot environment (termux32 or termux64)"
+    echo "  h, help      - Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  termux-penv install termux32   - Install the 32-bit chroot environment"
+    echo "  termux-penv login termux64     - Login to the 64-bit chroot environment"
+    echo "  termux-penv remove termux32    - Remove the 32-bit chroot environment"
+    exit 1
+}
+
+# Validate arguments
+if [ $# -lt 2 ]; then
+    echo "ERROR: Missing arguments."
+    usage
+fi
+
+# Parse command and environment
+command=$1
+environment=$2
+
+# Define script paths
+install_script=""
+login_script=""
+remove_script=""
+
+case "$environment" in
+    termux32)
+        install_script="$SCRIPT_DIR/termux32.sh"
+        login_script="$SCRIPT_DIR/termux32login.sh"
+        remove_script="$SCRIPT_DIR/termux32remove.sh"
+        ;;
+    termux64)
+        install_script="$SCRIPT_DIR/termux64.sh"
+        login_script="$SCRIPT_DIR/termux64login.sh"
+        remove_script="$SCRIPT_DIR/termux64remove.sh"
+        ;;
+    *)
+        echo "ERROR: Invalid environment. Use 'termux32' or 'termux64'."
+        usage
+        ;;
+esac
+
+# Execute the appropriate script based on the command
+case "$command" in
+    i|install)
+        if [ ! -f "$install_script" ]; then
+            echo "ERROR: Install script '$install_script' not found."
+            exit 1
+        fi
+        echo "Installing $environment..."
+        bash "$install_script"
+        ;;
+    l|login)
+        if [ ! -f "$login_script" ]; then
+            echo "ERROR: Login script '$login_script' not found."
+            exit 1
+        fi
+        echo "Logging into $environment..."
+        bash "$login_script"
+        ;;
+    r|remove)
+        if [ ! -f "$remove_script" ]; then
+            echo "ERROR: Remove script '$remove_script' not found."
+            exit 1
+        fi
+        echo "Removing $environment..."
+        bash "$remove_script"
+        ;;
+    h|help)
+        usage
+        ;;
+    *)
+        echo "ERROR: Invalid command."
+        usage
+        ;;
+esac
