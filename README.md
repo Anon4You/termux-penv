@@ -1,7 +1,3 @@
-Got it! I’ll add more **emojis** to make the README visually appealing and update the license section to reflect the **BSD-3-Clause license**. Here's the updated README:
-
----
-
 # 🐚 Termux Penv - Termux Chroot Environment Manager 🛠️
 
 **Termux Penv** is a shell script that simplifies the management of **32-bit** and **64-bit** chroot environments in Termux. It allows you to install, log in, and remove chroot environments with ease. 🚀
