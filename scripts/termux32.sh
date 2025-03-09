@@ -13,7 +13,6 @@ blue="\e[34m" pink="\e[35m" cyan="\e[36m"
 white="\e[37m" black="\e[30m" reset="\e[0m\n"
 filred="\e[41;1m" boldw="\e[0;1m"
 
-
 declare -A bootstrap_sha256=(
     ["aarch64"]="cc8ba6b951f1a009381183dde78979c0578d6824d5b87b1cb7f5cf9dbd8fa1cf"
     ["arm"]="f2143dfd3e68df0503a46ad0348dd64f7f228cbda97729d7fdf40df288679d46"
@@ -33,53 +32,27 @@ This program is needed to install Termux chroot from base Termux bootstrap locat
 Bootstrap version: %s
 Chroot installed to %s
 -----
-Flags:
-    -h  Show help
-    -f  Force install up on existing chroot
-    -r  Reinstall chroot | REMOVES ALL DATA!
-    -i  Standard install of chroot"""
+Standard install of chroot"""
 
-# Check up args.
-if [ $# -gt 0 ]; then
-    flag=$1
-else
-    flag="-i"
-fi
-
-if [ "$flag" == "-h" ]; then
-    printf "$help_text\n $bootstrap_ver $chroot_dir"
-    exit 0
-fi
-
-if [[ "$flag" != "-i" && "$flag" != "-r" && "$flag" != "-f" ]]; then
-    printf "ERROR: Unknown argument passed - '$flag'"
-    printf "$help_text\n" "$bootstrap_ver" "$chroot_dir"
+# Check if chroot directory already exists
+if [ -d "$chroot_dir" ]; then
+    printf "ERROR: Chroot directory already exists. Remove it manually or use a different directory.\n"
     exit 1
-fi
-
-# All checks
-if [[ "$flag" != "-f" && "$flag" != "-r" && -d "$chroot_dir" ]]; then
-    printf "ERROR: Chroot dir exists. Use flag -r if you want to reinstall chroot or use termux-remove32 to remove it"
-    exit 1
-elif [[ "$flag" == "-r" && -d "$chroot_dir" ]]; then
-    printf "> Removing existing chroot directory..."
-    rm -rf "$chroot_dir"
 fi
 
 # Select arch
 if [[ "$arch" == "i686" || "$arch" == "x86_64" || "$arch" == "AMD64" ]]; then
-    printf "WARNING: Experimental feature."
+    printf "WARNING: Experimental feature.\n"
     arch="i686"
 elif [[ "$arch" == "arm" || "$arch" == "aarch64" || "$arch" == "armv7l" || "$arch" == "armv8l" || "$arch" == "armv7h" || "$arch" == "armv9l" || "$arch" == "armv9h" || "$arch" == "armv9" ]]; then
     arch="arm"
 else
-    printf "ERROR: Unknown arch"
+    printf "ERROR: Unknown arch\n"
     exit 1
 fi
 
 # Use the new URL for arm
 bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.03.02-r1%2Bapt-android-7/bootstrap-$arch.zip"
-    
 
 printf "$blue
 Installing Termux Bootstrap $bootstrap_ver for $arch
@@ -106,9 +79,9 @@ fi
 
 computed_sha256=$(sha256sum "$bootstrap_file" | cut -d ' ' -f 1)
 if [ "$computed_sha256" != "$expected_sha256" ]; then
-    printf "ERROR: SHA256 checksum mismatch."
-    printf "Expected: $expected_sha256"
-    printf "Computed: $computed_sha256"
+    printf "ERROR: SHA256 checksum mismatch.\n"
+    printf "Expected: $expected_sha256\n"
+    printf "Computed: $computed_sha256\n"
     exit 1
 fi
 
@@ -135,7 +108,7 @@ if [ -f "$chroot_dir/usr/SYMLINKS.txt" ]; then
         ln -s "$src" "$chroot_dir/usr/$dest"
     done < "$chroot_dir/usr/SYMLINKS.txt"
 else
-    printf "WARNING: SYMLINKS.txt not found."
+    printf "WARNING: SYMLINKS.txt not found.\n"
 fi
 
 # Set up permissions
