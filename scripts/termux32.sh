@@ -6,7 +6,7 @@
 arch=$(uname -m)
 
 # Bootstrap
-bootstrap_ver="bootstrap-2025.03.02-r1 APT"
+bootstrap_ver="bootstrap-2025.04.13-r1 APT"
 
 red="\e[31m" green="\e[32m" yellow="\e[33m"
 blue="\e[34m" pink="\e[35m" cyan="\e[36m"
@@ -14,10 +14,10 @@ white="\e[37m" black="\e[30m" reset="\e[0m\n"
 filred="\e[41;1m" boldw="\e[0;1m"
 
 declare -A bootstrap_sha256=(
-    ["aarch64"]="cc8ba6b951f1a009381183dde78979c0578d6824d5b87b1cb7f5cf9dbd8fa1cf"
-    ["arm"]="f2143dfd3e68df0503a46ad0348dd64f7f228cbda97729d7fdf40df288679d46"
-    ["i686"]="cd4899a78720800ecab87389ca7279afc5dc46c79ba13ff7c92ca6b4c04950a2"
-    ["x86_64"]="d83ec84103322717a2a2434ea51d0077b9f4e23f6ca1a02ac5252f88bfc451a5"
+    ["aarch64"]="15b294b7dc864a367c45cebe71ca780c58b4f662c8d8d7e3cd66b8f2ffb02fea"
+    ["arm"]="367726baf4115c75165da4d8371fbd4e8e8140957026b56a471083d0353dfd5a"
+    ["i686"]="fd4d260deaf53714597c42116517654c4dfbacf6f74b19fde4c02225384ed77c"
+    ["x86_64"]="9b44b93b6a725efe1cbaf0e88bb9b4672e95c79bf415c1a8523f9135fb30d12d"
 )
 
 # Variables
@@ -51,8 +51,9 @@ else
     exit 1
 fi
 
+
 # Use the new URL for arm
-bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.03.02-r1%2Bapt-android-7/bootstrap-$arch.zip"
+bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.04.13-r1%2Bapt-android-7/bootstrap-$arch.zip"
 
 printf "$blue
 Installing Termux Bootstrap $bootstrap_ver for $arch
