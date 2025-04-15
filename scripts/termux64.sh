@@ -52,7 +52,7 @@ else
 fi
 
 # Use the new URL for arm
-bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.04.13-r1%2Bapt-android-7/bootstrap-$arch.zip"
+bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.04.13-r1%2Bapt.android-7/bootstrap-$arch.zip"
 
 printf "$blue
 Installing Termux Bootstrap $bootstrap_ver for $arch
