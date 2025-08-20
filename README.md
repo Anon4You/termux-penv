@@ -1,26 +1,27 @@
 # 🐚 Termux Penv - Termux Chroot Environment Manager 🛠️
 
-**Termux Penv** is a shell script that simplifies the management of **32-bit** and **64-bit** chroot environments in Termux. It allows you to install, log in, and remove chroot environments with ease. 🚀
+**Termux Penv** is a powerful shell script that simplifies the management of **32-bit** and **64-bit** chroot environments in Termux. It's specifically designed to help developers with **cross-compilation** and running applications built for different architectures. 🚀
 
 ---
 
 ## 🌟 Features
 
-- **Install Chroot Environments**:
-  - Install pre-configured 32-bit (`termux32`) or 64-bit (`termux64`) chroot environments. 🏗️
-- **Login to Chroot Environments**:
-  - Seamlessly log in to your installed chroot environments. 🔑
-- **Remove Chroot Environments**:
-  - Cleanly remove chroot environments when they are no longer needed. 🗑️
-- **Easy to Use**:
-  - Simple command-line interface with clear usage instructions. 📜
+- **Multi-Architecture Support**:
+  - Install and run both 32-bit (`termux32`) and 64-bit (`termux64`) Termux environments side-by-side. 🏗️
+- **Cross-Compilation Ready**:
+  - Perfect for compiling applications for different CPU architectures. 🔧
+- **Development Environment**:
+  - Test your applications on different architectures without needing multiple devices. 🧪
+- **Easy Management**:
+  - Install, log in, and remove chroot environments with simple commands. 📜
+- **Isolated Environments**:
+  - Keep your development environments separate and clean. 🧹
 
 ---
 
 ## 🛠️ Installation
 
-1 - You can install **Termux Penv** with a single command:
-
+### Method 1: Quick Install (Recommended)
 ```bash
 curl -sL https://github.com/Anon4You/termux-penv/raw/main/install.sh | bash
 ```
@@ -30,11 +31,11 @@ This will:
 2. Install the `termux-penv` script to `$PREFIX/bin`. 📂
 3. Place all required scripts in `$PREFIX/share/termux-penv`. 🗂️
 
-2 - **Install from alienkrishn repo**
-**Ensure you have the [Alienkrishn repository](https://github.com/Anon4You/alienkrishn.git) added to your Termux.**
+### Method 2: Install from Termux Void Repository
+**Ensure you have the [Termux Void Repository](https://github.com/termuxvoid) added to your Termux.**
 
-```
-apt install termux-penv -y 
+```bash
+apt install termux-penv -y
 ```
 
 ---
@@ -53,38 +54,62 @@ termux-penv [command] [environment]
 - **`help` or `h`**: Show usage instructions. 📜
 
 ### Environments
-- **`termux32`**: 32-bit chroot environment. 🖥️
-- **`termux64`**: 64-bit chroot environment. 💻
+- **`termux32`**: 32-bit chroot environment (ideal for ARMv7, i686). 🖥️
+- **`termux64`**: 64-bit chroot environment (for aarch64, x86_64). 💻
 
 ---
 
-### Examples
+## 🎯 Cross-Compilation Examples
 
-1. **Install Termux32**:
-   ```bash
-   termux-penv install termux32
-   ```
+### 1. Install Both Environments
+```bash
+# Install 64-bit environment (matches your host architecture)
+termux-penv install termux64
 
-2. **Login to Termux64**:
-   ```bash
-   termux-penv login termux64
-   ```
+# Install 32-bit environment (for cross-compilation)
+termux-penv install termux32
+```
 
-3. **Remove Termux32**:
-   ```bash
-   termux-penv remove termux32
-   ```
+### 2. Cross-Compile from 64-bit to 32-bit
+```bash
+# Login to your 64-bit environment
+termux-penv login termux64
 
-4. **Show Help**:
-   ```bash
-   termux-penv help
-   ```
+# Install cross-compilation tools
+apt install clang gcc make binutils
+
+# Compile for 32-bit ARM from your 64-bit environment
+CC="clang -target armv7a-linux-androideabi" ./configure --host=arm-linux-androideabi
+make
+```
+
+### 3. Test in Target Environment
+```bash
+# Test your 32-bit compiled binary in the 32-bit environment
+termux-penv login termux32
+./your-compiled-32bit-binary
+```
+
+### 4. Development Workflow
+```bash
+# Develop in 64-bit environment
+termux-penv login termux64
+# Write and test code
+
+# Cross-compile for 32-bit
+make clean
+CC="clang -target armv7a-linux-androideabi" make
+
+# Test in 32-bit environment
+termux-penv login termux32
+./your-app-32bit
+```
 
 ---
 
-## 📂 Scripts
+## 📂 Scripts Location
 
-The following scripts are located in `$PREFIX/share/termux-penv`:
+All scripts are located in `$PREFIX/share/termux-penv`:
 
 - **Installation Scripts**:
   - `termux32.sh`: Installs the 32-bit chroot environment. 🏗️
@@ -100,22 +125,32 @@ The following scripts are located in `$PREFIX/share/termux-penv`:
 
 ---
 
+## 🎪 Use Cases
+
+1. **Game Development**: Test games on different architectures. 🎮
+2. **Library Development**: Ensure compatibility across architectures. 📚
+3. **System Programming**: Develop low-level system tools. ⚙️
+4. **Education**: Learn about different CPU architectures. 🎓
+5. **Security Research**: Analyze malware for different platforms. 🔍
+
+---
+
 ## 🤝 Contributing
 
-Contributions are welcome! If you have any suggestions, bug reports, or feature requests, please open an issue or submit a pull request. 🛠️
+We welcome contributions! If you have suggestions, bug reports, or feature requests:
 
 1. **Fork the Repository**. 🍴
-2. **Create a New Branch**:
+2. **Create a Feature Branch**:
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feature/amazing-feature
    ```
 3. **Commit Your Changes**:
    ```bash
-   git commit -m "Add your message here"
+   git commit -m "Add amazing feature"
    ```
 4. **Push to the Branch**:
    ```bash
-   git push origin feature/your-feature-name
+   git push origin feature/amazing-feature
    ```
 5. **Open a Pull Request**. 🚀
 
@@ -123,23 +158,22 @@ Contributions are welcome! If you have any suggestions, bug reports, or feature 
 
 ## 📜 License
 
-This project is licensed under the **BSD-3-Clause License**. See the [LICENSE](LICENSE) file for details.
+BSD-3-Clause License. See [LICENSE](LICENSE) for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **Termux**: For providing an amazing terminal emulator and Linux environment for Android. 🐧
-- **GitHub Community**: For inspiration and support. 👥
+- **Termux Team**: For the amazing Android terminal environment. 🐧
+- **Cross-Compilation Community**: For tools and knowledge sharing. 👥
+- **Open Source Contributors**: Making development accessible to all. 🌍
 
 ---
 
 ## 💖 Support
 
-If you find this project useful, please consider giving it a ⭐️ on GitHub! 🌟
+If this tool helps your development workflow, please give it a ⭐️ on GitHub! 🌟
 
 ---
 
-Enjoy using **Termux Penv**! If you have any questions, feel free to open an issue or reach out. 😊
-
----
+**Happy Cross-Compiling!** Enjoy building applications for multiple architectures with Termux Penv! 🎉
