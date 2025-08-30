@@ -84,16 +84,6 @@ termux-penv login termux-pacman32
 ./your-compiled-32bit-binary
 ```
 
-### 4. Pacman Workflow
-```bash
-termux-penv login termux-pacman64
-pacman -S gcc make
-make clean
-CC="clang -target armv7a-linux-and left
-termux-penv login termux-pacman32
-./your-app-32bit
-```
-
 ---
 
 ## Script Locations 📂
