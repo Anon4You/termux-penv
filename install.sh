@@ -33,6 +33,12 @@ check_dependencies() {
     else
         printf "${GREEN}wget is already installed.${NC}\n"
     fi
+    if ! command -v figlet &> /dev/null; then
+        printf "${RED}figlet is not installed. Installing...${NC}\n"
+        apt install figlet -y
+    else
+        printf "${GREEN}figlet is already installed.${NC}\n"
+    fi
 }
 
 # Create necessary directories
@@ -44,7 +50,7 @@ create_directories() {
 # Download and install termux-penv and tp scripts
 install_scripts() {
     printf "${BLUE}Downloading scripts...${NC}\n"
-    scripts=("termux32.sh" "termux32login.sh" "termux32remove.sh" "termux64.sh" "termux64login.sh" "termux64remove.sh")
+    scripts=("termux32.sh" "termux32login.sh" "termux32remove.sh" "termux64.sh" "termux64login.sh" "termux64remove.sh" "termux-pacman32.sh" "termux-pacman32login.sh" "termux-pacman32remove.sh" "termux-pacman64.sh" "termux-pacman64login.sh" "termux-pacman64remove.sh")
     for script in "${scripts[@]}"; do
         printf "${CYAN}Downloading $script...${NC}\n"
         wget -q "$REPO_URL/scripts/$script" -O "$SHARE_DIR/$script"

@@ -1,12 +1,12 @@
 #!/data/data/com.termux/files/usr/bin/env bash
 
-# Bootstrap Ver: bootstrap-2025.08.17-r1
+# Bootstrap Ver: bootstrap-2025.08.24-r1
 
 # Machine Arch
 arch=$(uname -m)
 
 # Bootstrap
-bootstrap_ver="bootstrap-2025.08.17-r1 APT"
+bootstrap_ver="bootstrap-2025.08.24-r1 APT"
 
 red="\e[31m" green="\e[32m" yellow="\e[33m"
 blue="\e[34m" pink="\e[35m" cyan="\e[36m"
@@ -45,7 +45,7 @@ else
 fi
 
 # Use the updated URL for arm
-bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.08.17-r1%2Bapt.android-7/bootstrap-$arch.zip"
+bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.08.24-r1%2Bapt.android-7/bootstrap-$arch.zip"
 
 printf "$blue
 Installing Termux Bootstrap $bootstrap_ver for $arch
@@ -101,8 +101,8 @@ chmod -R 0700 "$chroot_dir/usr/bin" "$chroot_dir/usr/libexec" "$chroot_dir/usr/l
 # Set up additional files
 printf ">$blue Setting up additional files...$reset"
 sed -i "s/Termux!/termux-penv ${arch^^} Container!\nVersion: $bootstrap_ver/" "$chroot_dir/usr/etc/motd"
-printf "Telegram channel: https://t.me/nullxvoid\n" >> "$chroot_dir/usr/etc/motd"
-sed -i "s|at https://termux.dev/issues|To Alienkrishn on Telegram|" "$chroot_dir/usr/etc/motd"
+printf "Github: https://github.com/Anon4You/termux-penv\n" >> "$chroot_dir/usr/etc/motd"
+sed -i "s|at https://termux.dev/issues|To Termux-Penv Github|" "$chroot_dir/usr/etc/motd"
 printf "export BOOTSTRAP_VERSION=\"$bootstrap_ver\"" > "$chroot_dir/usr/etc/termux.penv"
 
 printf "$cyan Done! Use termux-penv login termux64 to get in chroot.$reset"

@@ -1,7 +1,16 @@
 #!/data/data/com.termux/files/usr/bin/env bash
 
 # Script Name: termux-penv
+# Version: 2.0.0
 # Description: Manage Termux 32-bit and 64-bit chroot environments.
+
+# Show banner
+clear
+script_name="Termux-Penv"
+version="2.0.0"
+figlet -f smslant "$script_name"
+echo "$script_name : V-$version By Alienkrishn [Anon4You]"
+echo ""
 
 # Colors
 RED='\033[1;31m'
@@ -16,23 +25,29 @@ SCRIPT_DIR="$PREFIX/share/termux-penv"
 
 # Usage Text
 usage() {
-    echo -e "${CYAN}Usage: termux-penv [command] [environment]${NC}"
+    echo -e "${CYAN}Usage: $(basename $0) [command] [environment]${NC}"
     echo -e "${CYAN}Commands:${NC}"
-    echo -e "  ${GREEN}i, install${NC}   - Install a chroot environment (termux32 or termux64)"
-    echo -e "  ${GREEN}l, login${NC}     - Login to a chroot environment (termux32 or termux64)"
-    echo -e "  ${GREEN}r, remove${NC}    - Remove a chroot environment (termux32 or termux64)"
+    echo -e "  ${GREEN}i, install${NC}   - Install a chroot environment"
+    echo -e "  ${GREEN}l, login${NC}     - Login to a chroot environment"
+    echo -e "  ${GREEN}r, remove${NC}    - Remove a chroot environment"
     echo -e "  ${GREEN}h, help${NC}      - Show this help message"
     echo ""
+    echo -e "${CYAN}Available environments:${NC}"
+    echo -e "  ${YELLOW}termux32${NC}          - 32-bit Termux environment"
+    echo -e "  ${YELLOW}termux64${NC}          - 64-bit Termux environment"
+    echo -e "  ${YELLOW}termux-pacman32${NC}   - 32-bit Termux Pacman environment"
+    echo -e "  ${YELLOW}termux-pacman64${NC}   - 64-bit Termux Pacman environment"
+    echo ""
     echo -e "${CYAN}Examples:${NC}"
-    echo -e "  ${YELLOW}termux-penv install termux32${NC}   - Install the 32-bit chroot environment"
-    echo -e "  ${YELLOW}termux-penv login termux64${NC}     - Login to the 64-bit chroot environment"
-    echo -e "  ${YELLOW}termux-penv remove termux32${NC}    - Remove the 32-bit chroot environment"
+    echo -e "  ${YELLOW}$(basename $0) install termux32${NC}         - Install 32-bit Termux environment"
+    echo -e "  ${YELLOW}$(basename $0) login termux64${NC}           - Login to 64-bit Termux environment"
+    echo -e "  ${YELLOW}$(basename $0) install termux-pacman32${NC}  - Install 32-bit Termux Pacman environment"
+    echo -e "  ${YELLOW}$(basename $0) remove termux32${NC}          - Remove 32-bit Termux environment"
     exit 1
 }
 
 # Validate arguments
 if [ $# -lt 2 ]; then
-    echo -e "${RED}ERROR: Missing arguments.${NC}"
     usage
 fi
 
@@ -56,8 +71,19 @@ case "$environment" in
         login_script="$SCRIPT_DIR/termux64login.sh"
         remove_script="$SCRIPT_DIR/termux64remove.sh"
         ;;
+
+    termux-pacman32)
+        install_script="$SCRIPT_DIR/termux-pacman32.sh"
+        login_script="$SCRIPT_DIR/termux-pacman32login.sh"
+        remove_script="$SCRIPT_DIR/termux-pacman32remove.sh"
+        ;;
+    termux-pacman64)
+        install_script="$SCRIPT_DIR/termux-pacman64.sh"
+        login_script="$SCRIPT_DIR/termux-pacman64login.sh"
+        remove_script="$SCRIPT_DIR/termux-pacman64remove.sh"
+        ;;
     *)
-        echo -e "${RED}ERROR: Invalid environment. Use 'termux32' or 'termux64'.${NC}"
+        echo -e "${RED}ERROR: Invalid environment. Use 'termux32', 'termux64', 'termux-pacman32', or 'termux-pacman64'.${NC}"
         usage
         ;;
 esac
