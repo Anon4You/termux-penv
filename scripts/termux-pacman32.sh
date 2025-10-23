@@ -7,7 +7,7 @@ white="\e[37m" black="\e[30m" reset="\e[0m\n"
 filred="\e[41;1m" boldw="\e[0;1m"
 
 # Bootstrap
-bootstrap_ver="bootstrap-2025.08.24-r1 PACMAN"
+bootstrap_ver="bootstrap-2025.10.19-r1 PACMAN"
 
 # Variables
 base_dir="$PREFIX/var/lib"
@@ -67,7 +67,7 @@ else
     exit 1
 fi
 
-bootstrap_url="https://github.com/termux-pacman/termux-packages/releases/download/bootstrap-2025.08.24-r1%2Bpacman-android-7/bootstrap-$arch.zip"
+bootstrap_url="https://github.com/termux-pacman/termux-packages/releases/download/bootstrap-2025.10.19-r1%2Bpacman-android-7/bootstrap-$arch.zip"
 
 
 printf "$blue

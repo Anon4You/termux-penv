@@ -6,7 +6,7 @@
 arch=$(uname -m)
 
 # Bootstrap
-bootstrap_ver="bootstrap-2025.08.24-r1 APT"
+bootstrap_ver="bootstrap-2025.10.19-r1 APT"
 
 red="\e[31m" green="\e[32m" yellow="\e[33m"
 blue="\e[34m" pink="\e[35m" cyan="\e[36m"
@@ -45,7 +45,7 @@ else
 fi
 
 # Use the updated URL for arm
-bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.08.24-r1%2Bapt.android-7/bootstrap-$arch.zip"
+bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.10.19-r1%2Bapt.android-7/bootstrap-$arch.zip"
 
 printf "$blue
 Installing Termux Bootstrap $bootstrap_ver for $arch
