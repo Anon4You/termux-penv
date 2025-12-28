@@ -6,9 +6,6 @@ blue="\e[34m" pink="\e[35m" cyan="\e[36m"
 white="\e[37m" black="\e[30m" reset="\e[0m\n"
 filred="\e[41;1m" boldw="\e[0;1m"
 
-# Bootstrap
-bootstrap_ver="bootstrap-2025.10.19-r1 PACMAN"
-
 # Variables
 base_dir="$PREFIX/var/lib"
 program_dir="$base_dir/termux_penv"
@@ -16,10 +13,9 @@ chroot_dir="$program_dir/pacman-chroot32"
 exec_dir=$(pwd)
 tmp_dir="${TMPDIR:-/tmp}"
 
-help_text="termux-penv install termux-pacman32 - Install 64 bit Termux chroot on your machine
+help_text="termux-penv install termux-pacman32 - Install 32 bit Termux chroot on your machine
 -----
 This program is needed to install Termux chroot from base Termux bootstrap
-Bootstrap version: %s
 Chroot installed to %s
 -----
 Standard install of chroot"
@@ -32,13 +28,13 @@ else
 fi
 
 if [ "$flag" = "-h" ]; then
-    printf "$help_text\n" "$bootstrap_ver" "$chroot_dir"
+    printf "$help_text\n" "$chroot_dir"
     exit 0
 fi
 
 if [ "$flag" != "-i" ] && [ "$flag" != "-r" ] && [ "$flag" != "-f" ]; then
     printf "$red ERROR: Unknown argument passed - '$flag' $reset"
-    printf "$help_text\n" "$bootstrap_ver" "$chroot_dir"
+    printf "$help_text\n" "$chroot_dir"
     exit 1
 fi
 
@@ -67,18 +63,49 @@ else
     exit 1
 fi
 
-bootstrap_url="https://github.com/termux-pacman/termux-packages/releases/download/bootstrap-2025.10.19-r1%2Bpacman-android-7/bootstrap-$arch.zip"
-
-
 printf "$blue
-Installing Termux Bootstrap $bootstrap_ver for $arch
+Fetching latest Termux Pacman Bootstrap for $arch
 To: $chroot_dir $reset"
 
 # Create directories
 mkdir -p "$chroot_dir/usr" "$chroot_dir/home"
 
-# Download and extract bootstrap
-printf "> $green Downloading bootstrap... $reset"
+# Get the latest pacman bootstrap URL
+printf "> $green Getting latest pacman bootstrap URL... $reset"
+
+# Try multiple approaches to get the latest bootstrap URL
+bootstrap_url=""
+
+# Approach 1: Try GitHub API for termux-pacman releases
+api_url="https://api.github.com/repos/termux-pacman/termux-packages/releases"
+bootstrap_url=$(curl -s "$api_url" | grep -o "https://.*bootstrap-.*$arch.*\.zip" | head -1)
+
+if [ -z "$bootstrap_url" ]; then
+    # Approach 2: Try to get latest release tag and construct URL
+    printf "> $yellow API failed, trying to get latest tag... $reset"
+    
+    # Get the latest release tag from the releases page
+    latest_tag=$(curl -s "$api_url" | grep -o '"tag_name": "[^"]*"' | head -1 | cut -d'"' -f4)
+    
+    if [ -n "$latest_tag" ]; then
+        # Clean up the tag (remove + signs that might be URL encoded)
+        clean_tag=$(echo "$latest_tag" | sed 's/+/%2B/g')
+        bootstrap_url="https://github.com/termux-pacman/termux-packages/releases/download/${clean_tag}/bootstrap-$arch.zip"
+    fi
+fi
+
+if [ -z "$bootstrap_url" ]; then
+    # Approach 3: Ultimate fallback to a known working version
+    printf "> $yellow Using fallback bootstrap URL... $reset"
+    bootstrap_url="https://github.com/termux-pacman/termux-packages/releases/download/bootstrap-2025.10.19-r1%2Bpacman-android-7/bootstrap-$arch.zip"
+fi
+
+# Extract bootstrap version from URL for display
+bootstrap_ver=$(echo "$bootstrap_url" | grep -o "bootstrap-[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}-r[0-9]" || echo "latest-pacman")
+
+printf "> $green Downloading $bootstrap_ver bootstrap... $reset"
+
+# Download file using wget
 if ! wget -q --show-progress "$bootstrap_url" -O "$tmp_dir/bootstrap.zip"; then
     printf "$red ERROR: Failed to download bootstrap $reset"
     exit 1
@@ -146,7 +173,7 @@ if [ -f "$chroot_dir/usr/etc/motd" ]; then
     
     # Create new motd
     {
-        echo "Termux-Penv ${arch^^} Container!"
+        echo "Termux-Penv ${arch^^} Container (Pacman)!"
         echo "Version: $bootstrap_ver"
         echo ""
         echo "Termux-Penv on GitHub: https://github.com/Anon4You/termux-penv"
@@ -160,11 +187,12 @@ fi
 
 # Create version file
 mkdir -p "$chroot_dir/usr/etc"
-echo "export BOOTSTRAP_VERSION=\"$bootstrap_ver\"" > "$chroot_dir/usr/etc/termux.penv"
+echo "export BOOTSTRAP_VERSION=\"Latest ($bootstrap_ver)\"" > "$chroot_dir/usr/etc/termux.penv"
 
 printf "> $cyan Cleaning up... $reset"
 # Remove any problematic files that might cause issues
 find "$chroot_dir" -name ".DS_Store" -delete 2>/dev/null || true
 find "$chroot_dir" -name "._*" -delete 2>/dev/null || true
 
-printf "$green Done! Use termux-penv login termux-pacman32 to get in chroot. $reset"
+printf "$green ✓ Successfully installed latest Termux Pacman bootstrap! $reset"
+printf "$cyan Use 'termux-penv login termux-pacman32' to enter the chroot. $reset"

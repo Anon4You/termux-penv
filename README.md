@@ -1,4 +1,4 @@
-# Termux Penv v2.0.0 - Chroot Environment Manager 🛠️
+# Termux Penv v2.0.1 - Chroot Environment Manager 🛠️
 
 **Termux Penv** is a sleek shell script for managing 32-bit and 64-bit chroot environments in Termux. Perfect for cross-compilation and testing apps across architectures, it now supports Pacman-based environments for Arch Linux-style package management. 🚀
 
@@ -136,5 +136,5 @@ Star the project on GitHub if it boosts your workflow! 🌟
 
 ---
 
-**Version 2.0.0** - Now with `termux-pacman32` and `termux-pacman64` for flexible development! 🎉
+**Version 2.0.1** - Now Fetches latest bootstrap everytime 
 

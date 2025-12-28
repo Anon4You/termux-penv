@@ -5,9 +5,6 @@
 # Machine Arch
 arch=$(uname -m)
 
-# Bootstrap
-bootstrap_ver="bootstrap-2025.10.19-r1 APT"
-
 red="\e[31m" green="\e[32m" yellow="\e[33m"
 blue="\e[34m" pink="\e[35m" cyan="\e[36m"
 white="\e[37m" black="\e[30m" reset="\e[0m\n"
@@ -18,14 +15,6 @@ base_dir="$PREFIX/var/lib"
 program_dir="$base_dir/termux_penv"
 chroot_dir="$program_dir/chroot64"
 exec_dir=$(pwd)
-
-help_text="""termux-penv install termux64 - Install 32 bit Termux chroot on your machine
------
-This program is needed to install Termux chroot from base Termux bootstrap located at https://github.com/termux/termux-packages/releases
-Bootstrap version: %s
-Chroot installed to %s
------
-Standard install of chroot"""
 
 # Check if chroot directory already exists
 if [ -d "$chroot_dir" ]; then
@@ -44,11 +33,8 @@ else
     exit 1
 fi
 
-# Use the updated URL for arm
-bootstrap_url="https://github.com/termux/termux-packages/releases/download/bootstrap-2025.10.19-r1%2Bapt.android-7/bootstrap-$arch.zip"
-
 printf "$blue
-Installing Termux Bootstrap $bootstrap_ver for $arch
+Fetching latest Termux Bootstrap for $arch
 To: $chroot_dir $reset\n"
 
 # Create temp dir
@@ -61,8 +47,35 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Get the latest bootstrap URL from GitHub API
+printf "> $green Getting latest bootstrap URL...$reset"
+api_url="https://api.github.com/repos/termux/termux-packages/releases"
+
+# Find the latest bootstrap release
+bootstrap_url=$(curl -s "$api_url" | grep -o "https://.*bootstrap-.*$arch.*\.zip" | head -1)
+
+if [ -z "$bootstrap_url" ]; then
+    # Fallback to manual URL construction if API fails
+    printf "> $yellow API failed, using fallback URL...$reset"
+    
+    # Get the latest release tag
+    latest_tag=$(curl -s "$api_url" | grep -o '"tag_name": "[^"]*"' | head -1 | cut -d'"' -f4)
+    
+    if [ -z "$latest_tag" ]; then
+        # Ultimate fallback to a known working version
+        latest_tag="bootstrap-2025.10.19-r1%2Bapt.android-7"
+    fi
+    
+    # Construct the URL
+    bootstrap_url="https://github.com/termux/termux-packages/releases/download/${latest_tag}/bootstrap-$arch.zip"
+fi
+
+# Extract bootstrap version from URL for display
+bootstrap_ver=$(echo "$bootstrap_url" | grep -o "bootstrap-[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}-r[0-9]" || echo "latest")
+
+printf "> $green Downloading $bootstrap_ver bootstrap...$reset"
+
 # Download file using wget
-printf "> $green Downloading bootstrap...$reset"
 if ! wget -q --show-progress "$bootstrap_url" -O "$bootstrap_file"; then
     printf "$red ERROR: Failed to download bootstrap.$reset"
     exit 1
@@ -103,6 +116,8 @@ printf ">$blue Setting up additional files...$reset"
 sed -i "s/Termux!/termux-penv ${arch^^} Container!\nVersion: $bootstrap_ver/" "$chroot_dir/usr/etc/motd"
 printf "Github: https://github.com/Anon4You/termux-penv\n" >> "$chroot_dir/usr/etc/motd"
 sed -i "s|at https://termux.dev/issues|To Termux-Penv Github|" "$chroot_dir/usr/etc/motd"
-printf "export BOOTSTRAP_VERSION=\"$bootstrap_ver\"" > "$chroot_dir/usr/etc/termux.penv"
+printf "export BOOTSTRAP_VERSION=\"Latest ($bootstrap_ver)\"" > "$chroot_dir/usr/etc/termux.penv"
 
-printf "$cyan Done! Use termux-penv login termux64 to get in chroot.$reset"
+printf "$green ✓ Successfully installed latest Termux bootstrap!$reset"
+printf "$cyan Use 'termux-penv login termux64' to enter the chroot.$reset"
+
