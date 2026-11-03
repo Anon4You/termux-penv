@@ -25,6 +25,7 @@ usage() {
     echo -e "${CYAN}Commands:${NC}"
     echo -e "  ${GREEN}i, install${NC}   - Install a chroot environment"
     echo -e "  ${GREEN}l, login${NC}     - Login to a chroot environment"
+    echo -e "  ${GREEN}run${NC}         - Run one command in a chroot (no banner)"
     echo -e "  ${GREEN}r, remove${NC}    - Remove a chroot environment"
     echo -e "  ${GREEN}h, help${NC}      - Show this help message"
     echo ""
@@ -33,7 +34,7 @@ usage() {
     echo -e "  ${YELLOW}termux-pacman${NC}   - Termux Pacman environment"
     echo ""
     echo -e "${CYAN}Architectures:${NC} aarch64, arm, x86_64, i686"
-    echo -e "${CYAN}Login options: $prog login --help${NC}"
+    echo -e "${CYAN}Login/run options: $prog login --help${NC}"
     echo -e "${CYAN}Install options: $prog install <environment> --help${NC}"
     echo ""
     echo -e "${CYAN}Examples:${NC}"
@@ -42,24 +43,30 @@ usage() {
     echo -e "  ${YELLOW}$prog install termux-pacman --arch arm${NC} - Install an ARM Pacman environment"
     echo -e "  ${YELLOW}$prog login termux${NC}                    - Login (host or only installed arch)"
     echo -e "  ${YELLOW}$prog login termux --arch i686${NC}        - Login to a specific architecture"
+    echo -e "  ${YELLOW}$prog run termux uname -m${NC}              - Run one command, no banner"
     echo -e "  ${YELLOW}$prog remove termux --arch i686${NC}       - Remove a specific architecture"
     exit "$code"
 }
 
 show_login_help() {
     local code="${1:-1}"
+    local usage_cmd="${2:-login}"
     local common="$SCRIPT_DIR/login-common.sh"
     [ -f "$common" ] || common="$(dirname "$0")/../scripts/login-common.sh"
     if [ -f "$common" ]; then
         LOGIN_PROG="$prog"
+        LOGIN_USAGE_CMD="$usage_cmd"
         . "$common"
         login_usage "$code"
     fi
     usage "$code"
 }
 
-# Show banner only on a terminal, and not for --get-proot-cmd
+cmd="${1:-}"
+
+# Show banner only on a terminal, and not for run or --get-proot-cmd
 show_banner=1
+[ "$cmd" = "run" ] && show_banner=0
 for arg in "$@"; do
     [ "$arg" = "--" ] && break
     [ "$arg" = "--get-proot-cmd" ] && { show_banner=0; break; }
@@ -73,7 +80,6 @@ if [ "$show_banner" -eq 1 ] && [ -t 1 ]; then
     echo ""
 fi
 
-cmd="${1:-}"
 if [ -z "$cmd" ]; then
     usage 1
 fi
@@ -87,12 +93,12 @@ esac
 shift
 
 case "$cmd" in
-    l|login)
+    l|login|run)
         if [ $# -eq 0 ]; then
-            show_login_help 1
+            show_login_help 1 "$cmd"
         fi
         case "$1" in
-            -h|--help) show_login_help 0 ;;
+            -h|--help) show_login_help 0 "$cmd" ;;
         esac
         environment="$1"
         shift
@@ -140,12 +146,16 @@ case "$cmd" in
         echo -e "${BLUE}Installing $environment...${NC}"
         bash "$install_script" "$@"
         ;;
-    l|login)
+    l|login|run)
         if [ ! -f "$login_script" ]; then
             echo -e "${RED}ERROR: Login script '$login_script' not found.${NC}"
             exit 1
         fi
-        bash "$login_script" "$@"
+        if [ "$cmd" = "run" ]; then
+            LOGIN_RUN=1 bash "$login_script" "$@"
+        else
+            bash "$login_script" "$@"
+        fi
         ;;
     r|remove)
         arch_spec=""

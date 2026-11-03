@@ -11,7 +11,7 @@
 - **Auto Detection**: `termux-penv install termux` picks the architecture of this device. 🔍
 - **Isolated Testing**: Test apps in clean Termux environments for the architectures this device can run. 🧪
 - **Pacman Support**: Use `termux-pacman` for Arch-style package management. 📦
-- **Simple Commands**: Install, login, and remove environments with ease. 📜
+- **Simple Commands**: Install, login, run, and remove environments with ease. 📜
 
 ## Why termux-penv instead of proot-distro? 🤔
 
@@ -77,18 +77,28 @@ termux-penv [command] [environment] [options] [command...]
 ### Commands
 - `install` (`i`): Set up a chroot environment. 🏗️
 - `login` (`l`): Access a chroot environment. 🔑
+- `run`: Run one command in a chroot without a banner. 🏃
 - `remove` (`r`): Delete a chroot environment. 🗑️
 - `help` (`h`): Show usage information. 📖
 
 ### Options
-Run `termux-penv login --help` for the full login option list (proot-distro style), including `--arch`, `--user`, `--isolated`, `--shared-home`, `--shared-tmp`, `--bind`, `--hostname`, `--work-dir`, `--env`, `--detach` and more.
+Run `termux-penv login --help` for the full login and run option list (proot-distro style), including `--arch`, `--isolated`, `--shared-home`, `--shared-tmp`, `--bind`, `--work-dir`, `--env`, `--detach` and more.
 
 By default the chroot uses its own private home directory (`$PREFIX/var/lib/termux_penv/<type>-<arch>/home`) instead of the Termux home. Use `--shared-home` to share the Termux home, like `proot-distro`.
 
 ```bash
 termux-penv login termux --shared-home
 termux-penv login termux --isolated --bind /sdcard:/sdcard
-termux-penv login termux -w /home ls -la
+termux-penv run termux -w /home -- ls -la
+```
+
+### Run one command
+`run` executes one command without the login banner or an interactive shell. It accepts the same options as `login`, but requires a command:
+
+```bash
+termux-penv run termux uname -m
+termux-penv run termux --arch arm -- id
+termux-penv run termux -w /tmp -- ls -la
 ```
 
 ### Install a different architecture
@@ -224,5 +234,5 @@ Star the project on GitHub if it boosts your workflow! 🌟
 
 ---
 
-**Version 3.0.0** - one `termux` / `termux-pacman` environment per architecture, automatic architecture detection, `--arch` for install, login and remove
+**Version 3.0.0** - one `termux` / `termux-pacman` environment per architecture, automatic architecture detection, `--arch` for install, login, run and remove
 

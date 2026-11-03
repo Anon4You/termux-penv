@@ -141,6 +141,30 @@ assert_contains 'arg=echo' "$proot_log" 'command name kept'
 assert_contains 'arg=a b' "$proot_log" 'command argument kept'
 if grep -Fq 'arg=sh' "$proot_log"; then fail 'command was passed through sh -c'; else pass; fi
 
+# run: execute one command without the login banner.
+: > "$proot_log"
+PROOT_LOG="$proot_log" "$PREFIX/bin/termux-penv" run termux --arch "$host" echo 'a b' >"$tmp/out" 2>"$tmp/err"
+assert_eq 0 "$?" 'run command exit'
+assert_contains 'arg=echo' "$proot_log" 'run command name kept'
+assert_contains 'arg=a b' "$proot_log" 'run command argument kept'
+if grep -Fq 'Logging into' "$tmp/err"; then fail 'run printed the login banner'; else pass; fi
+
+"$PREFIX/bin/termux-penv" run termux --arch "$host" >"$tmp/out" 2>"$tmp/err"
+assert_ne 0 "$?" 'run without command accepted'
+assert_contains 'run needs a command' "$tmp/err" 'run missing command error'
+
+"$PREFIX/bin/termux-penv" run --help >"$tmp/out" 2>&1
+assert_eq 0 "$?" 'run --help failed'
+assert_contains 'Usage: termux-penv run' "$tmp/out" 'run help usage'
+
+"$share/termux-login.sh" --arch "$host" --user root -- true >"$tmp/out" 2>&1
+assert_ne 0 "$?" '--user accepted'
+assert_contains "Unknown option '--user'" "$tmp/out" '--user error'
+
+"$share/termux-login.sh" --arch "$host" --hostname test -- true >"$tmp/out" 2>&1
+assert_ne 0 "$?" '--hostname accepted'
+assert_contains "Unknown option '--hostname'" "$tmp/out" '--hostname error'
+
 preload="$real_prefix/lib/libtermux-exec.so"
 if [ -f "$preload" ]; then
     : > "$proot_log"
