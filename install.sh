@@ -12,33 +12,25 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Define directories
-PREFIX="/data/data/com.termux/files/usr"
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 BIN_DIR="$PREFIX/bin"
 SHARE_DIR="$PREFIX/share/termux-penv"
 REPO_URL="https://github.com/Anon4You/termux-penv/raw/main"
 
-# Check for proot and wget, install if missing
+# Check for required commands, install if missing
 check_dependencies() {
     printf "${BLUE}Checking dependencies...${NC}\n"
-    if ! command -v proot &> /dev/null; then
-        printf "${RED}proot is not installed. Installing...${NC}\n"
-        apt install proot -y
-    else
-        printf "${GREEN}proot is already installed.${NC}\n"
-    fi
-
-    if ! command -v wget &> /dev/null; then
-        printf "${RED}wget is not installed. Installing...${NC}\n"
-        apt install wget -y
-    else
-        printf "${GREEN}wget is already installed.${NC}\n"
-    fi
-    if ! command -v figlet &> /dev/null; then
-        printf "${RED}figlet is not installed. Installing...${NC}\n"
-        apt install figlet -y
-    else
-        printf "${GREEN}figlet is already installed.${NC}\n"
-    fi
+    for dep in proot wget curl unzip; do
+        if ! command -v "$dep" &> /dev/null; then
+            printf "${RED}$dep is not installed. Installing...${NC}\n"
+            if ! apt install "$dep" -y; then
+                printf "${RED}Failed to install $dep.${NC}\n"
+                exit 1
+            fi
+        else
+            printf "${GREEN}$dep is already installed.${NC}\n"
+        fi
+    done
 }
 
 # Create necessary directories
@@ -50,20 +42,25 @@ create_directories() {
 # Download and install termux-penv and tp scripts
 install_scripts() {
     printf "${BLUE}Downloading scripts...${NC}\n"
-    scripts=("termux32.sh" "termux32login.sh" "termux32remove.sh" "termux64.sh" "termux64login.sh" "termux64remove.sh" "termux-pacman32.sh" "termux-pacman32login.sh" "termux-pacman32remove.sh" "termux-pacman64.sh" "termux-pacman64login.sh" "termux-pacman64remove.sh")
+    scripts=("env-common.sh" "login-common.sh" "termux-install.sh" "termux-pacman-install.sh" "termux-login.sh" "termux-pacman-login.sh")
     for script in "${scripts[@]}"; do
         printf "${CYAN}Downloading $script...${NC}\n"
-        wget -q "$REPO_URL/scripts/$script" -O "$SHARE_DIR/$script"
+        if ! wget -q "$REPO_URL/scripts/$script" -O "$SHARE_DIR/$script"; then
+            printf "${RED}Failed to download $script.${NC}\n"
+            exit 1
+        fi
         chmod +x "$SHARE_DIR/$script"
     done
 
     printf "${CYAN}Downloading termux-penv...${NC}\n"
-    wget -q "$REPO_URL/bin/termux-penv" -O "$BIN_DIR/termux-penv"
+    if ! wget -q "$REPO_URL/bin/termux-penv" -O "$BIN_DIR/termux-penv"; then
+        printf "${RED}Failed to download termux-penv.${NC}\n"
+        exit 1
+    fi
     chmod +x "$BIN_DIR/termux-penv"
 
-    printf "${CYAN}Downloading tp...${NC}\n"
-    wget -q "$REPO_URL/bin/tp" -O "$BIN_DIR/tp"
-    chmod +x "$BIN_DIR/tp"
+    printf "${CYAN}Creating tp symlink...${NC}\n"
+    ln -sf termux-penv "$BIN_DIR/tp"
 }
 
 # Main function

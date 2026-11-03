@@ -1,16 +1,10 @@
 #!/data/data/com.termux/files/usr/bin/env bash
 
 # Script Name: termux-penv
-# Version: 2.0.0
-# Description: Manage Termux 32-bit and 64-bit chroot environments.
+# Version: 3.0.0
+# Description: Manage Termux chroot environments.
 
-# Show banner
-clear
-script_name="Termux-Penv"
-version="2.0.1"
-figlet -f smslant "$script_name"
-echo "$script_name : V-$version By Alienkrishn [Anon4You]"
-echo ""
+prog=$(basename "$0")
 
 # Colors
 RED='\033[1;31m'
@@ -22,10 +16,12 @@ NC='\033[0m' # No Color
 
 # Directory containing scripts
 SCRIPT_DIR="$PREFIX/share/termux-penv"
+program_dir="$PREFIX/var/lib/termux_penv"
 
 # Usage Text
 usage() {
-    echo -e "${CYAN}Usage: $(basename $0) [command] [environment]${NC}"
+    local code="${1:-1}"
+    echo -e "${CYAN}Usage: $prog [command] [environment] [options] [command...]${NC}"
     echo -e "${CYAN}Commands:${NC}"
     echo -e "  ${GREEN}i, install${NC}   - Install a chroot environment"
     echo -e "  ${GREEN}l, login${NC}     - Login to a chroot environment"
@@ -33,92 +29,166 @@ usage() {
     echo -e "  ${GREEN}h, help${NC}      - Show this help message"
     echo ""
     echo -e "${CYAN}Available environments:${NC}"
-    echo -e "  ${YELLOW}termux32${NC}          - 32-bit Termux environment"
-    echo -e "  ${YELLOW}termux64${NC}          - 64-bit Termux environment"
-    echo -e "  ${YELLOW}termux-pacman32${NC}   - 32-bit Termux Pacman environment"
-    echo -e "  ${YELLOW}termux-pacman64${NC}   - 64-bit Termux Pacman environment"
+    echo -e "  ${YELLOW}termux${NC}          - Termux (APT) environment"
+    echo -e "  ${YELLOW}termux-pacman${NC}   - Termux Pacman environment"
+    echo ""
+    echo -e "${CYAN}Architectures:${NC} aarch64, arm, x86_64, i686"
+    echo -e "${CYAN}Login options: $prog login --help${NC}"
+    echo -e "${CYAN}Install options: $prog install <environment> --help${NC}"
     echo ""
     echo -e "${CYAN}Examples:${NC}"
-    echo -e "  ${YELLOW}$(basename $0) install termux32${NC}         - Install 32-bit Termux environment"
-    echo -e "  ${YELLOW}$(basename $0) login termux64${NC}           - Login to 64-bit Termux environment"
-    echo -e "  ${YELLOW}$(basename $0) install termux-pacman32${NC}  - Install 32-bit Termux Pacman environment"
-    echo -e "  ${YELLOW}$(basename $0) remove termux32${NC}          - Remove 32-bit Termux environment"
-    exit 1
+    echo -e "  ${YELLOW}$prog install termux${NC}                  - Install for this device"
+    echo -e "  ${YELLOW}$prog install termux --arch i686${NC}      - Install a 32-bit x86 environment"
+    echo -e "  ${YELLOW}$prog install termux-pacman --arch arm${NC} - Install an ARM Pacman environment"
+    echo -e "  ${YELLOW}$prog login termux${NC}                    - Login (host or only installed arch)"
+    echo -e "  ${YELLOW}$prog login termux --arch i686${NC}        - Login to a specific architecture"
+    echo -e "  ${YELLOW}$prog remove termux --arch i686${NC}       - Remove a specific architecture"
+    exit "$code"
 }
 
-# Validate arguments
-if [ $# -lt 2 ]; then
-    usage
+show_login_help() {
+    local code="${1:-1}"
+    local common="$SCRIPT_DIR/login-common.sh"
+    [ -f "$common" ] || common="$(dirname "$0")/../scripts/login-common.sh"
+    if [ -f "$common" ]; then
+        LOGIN_PROG="$prog"
+        . "$common"
+        login_usage "$code"
+    fi
+    usage "$code"
+}
+
+# Show banner only on a terminal, and not for --get-proot-cmd
+show_banner=1
+for arg in "$@"; do
+    [ "$arg" = "--" ] && break
+    [ "$arg" = "--get-proot-cmd" ] && { show_banner=0; break; }
+done
+if [ "$show_banner" -eq 1 ] && [ -t 1 ]; then
+    clear
+    script_name="Termux-Penv"
+    version="3.0.0"
+    command -v figlet >/dev/null && figlet -f smslant "$script_name"
+    echo "$script_name : V-$version By Alienkrishn [Anon4You]"
+    echo ""
 fi
 
-# Parse command and environment
-command=$1
-environment=$2
+cmd="${1:-}"
+if [ -z "$cmd" ]; then
+    usage 1
+fi
 
-# Define script paths
-install_script=""
-login_script=""
-remove_script=""
-
-case "$environment" in
-    termux32)
-        install_script="$SCRIPT_DIR/termux32.sh"
-        login_script="$SCRIPT_DIR/termux32login.sh"
-        remove_script="$SCRIPT_DIR/termux32remove.sh"
-        ;;
-    termux64)
-        install_script="$SCRIPT_DIR/termux64.sh"
-        login_script="$SCRIPT_DIR/termux64login.sh"
-        remove_script="$SCRIPT_DIR/termux64remove.sh"
-        ;;
-
-    termux-pacman32)
-        install_script="$SCRIPT_DIR/termux-pacman32.sh"
-        login_script="$SCRIPT_DIR/termux-pacman32login.sh"
-        remove_script="$SCRIPT_DIR/termux-pacman32remove.sh"
-        ;;
-    termux-pacman64)
-        install_script="$SCRIPT_DIR/termux-pacman64.sh"
-        login_script="$SCRIPT_DIR/termux-pacman64login.sh"
-        remove_script="$SCRIPT_DIR/termux-pacman64remove.sh"
-        ;;
-    *)
-        echo -e "${RED}ERROR: Invalid environment. Use 'termux32', 'termux64', 'termux-pacman32', or 'termux-pacman64'.${NC}"
-        usage
+case "$cmd" in
+    -h|--help|h|help)
+        usage 0
         ;;
 esac
 
-# Execute the appropriate script based on the command
-case "$command" in
+shift
+
+case "$cmd" in
+    l|login)
+        if [ $# -eq 0 ]; then
+            show_login_help 1
+        fi
+        case "$1" in
+            -h|--help) show_login_help 0 ;;
+        esac
+        environment="$1"
+        shift
+        ;;
+    i|install|r|remove)
+        if [ $# -eq 0 ]; then
+            usage 1
+        fi
+        environment="$1"
+        shift
+        ;;
+    *)
+        echo -e "${RED}ERROR: Invalid command.${NC}"
+        usage 1
+        ;;
+esac
+
+install_script=""
+login_script=""
+dir_prefix=""
+
+case "$environment" in
+    termux)
+        install_script="$SCRIPT_DIR/termux-install.sh"
+        login_script="$SCRIPT_DIR/termux-login.sh"
+        dir_prefix="termux"
+        ;;
+    termux-pacman)
+        install_script="$SCRIPT_DIR/termux-pacman-install.sh"
+        login_script="$SCRIPT_DIR/termux-pacman-login.sh"
+        dir_prefix="pacman"
+        ;;
+    *)
+        echo -e "${RED}ERROR: Invalid environment. Use 'termux' or 'termux-pacman'.${NC}"
+        usage 1
+        ;;
+esac
+
+case "$cmd" in
     i|install)
         if [ ! -f "$install_script" ]; then
             echo -e "${RED}ERROR: Install script '$install_script' not found.${NC}"
             exit 1
         fi
         echo -e "${BLUE}Installing $environment...${NC}"
-        bash "$install_script"
+        bash "$install_script" "$@"
         ;;
     l|login)
         if [ ! -f "$login_script" ]; then
             echo -e "${RED}ERROR: Login script '$login_script' not found.${NC}"
             exit 1
         fi
-        echo -e "${BLUE}Logging into $environment...${NC}"
-        bash "$login_script"
+        bash "$login_script" "$@"
         ;;
     r|remove)
-        if [ ! -f "$remove_script" ]; then
-            echo -e "${RED}ERROR: Remove script '$remove_script' not found.${NC}"
+        arch_spec=""
+        while [ $# -gt 0 ]; do
+            case "$1" in
+                -h|--help) usage 0 ;;
+                --arch)
+                    [ $# -ge 2 ] && [ -n "$2" ] || { echo -e "${RED}ERROR: --arch needs a value.${NC}"; exit 1; }
+                    arch_spec="$2"
+                    shift 2
+                    ;;
+                --arch=*)
+                    arch_spec="${1#*=}"
+                    [ -n "$arch_spec" ] || { echo -e "${RED}ERROR: --arch needs a value.${NC}"; exit 1; }
+                    shift
+                    ;;
+                *)
+                    echo -e "${RED}ERROR: Unknown argument '$1'.${NC}"
+                    exit 1
+                    ;;
+            esac
+        done
+        env_common="$SCRIPT_DIR/env-common.sh"
+        [ -f "$env_common" ] || env_common="$(dirname "$0")/../scripts/env-common.sh"
+        if [ ! -f "$env_common" ]; then
+            echo -e "${RED}ERROR: env-common.sh not found. Reinstall termux-penv.${NC}"
             exit 1
         fi
-        echo -e "${BLUE}Removing $environment...${NC}"
-        bash "$remove_script"
-        ;;
-    h|help)
-        usage
-        ;;
-    *)
-        echo -e "${RED}ERROR: Invalid command.${NC}"
-        usage
+        . "$env_common"
+        LOGIN_ENV="$environment"
+        LOGIN_PREFIX="$dir_prefix"
+        LOGIN_BASE="$program_dir"
+        resolve_arch "$arch_spec"
+        chroot_dir="$program_dir/$dir_prefix-$RESOLVED_ARCH"
+        if [ ! -d "$chroot_dir" ]; then
+            echo -e "${RED}ERROR: $environment ($RESOLVED_ARCH) is not installed.${NC}"
+            exit 1
+        fi
+        echo -e "${BLUE}Removing $environment ($RESOLVED_ARCH)...${NC}"
+        if ! remove_chroot "$chroot_dir"; then
+            echo -e "${RED}ERROR: Failed to remove $chroot_dir.${NC}" >&2
+            exit 1
+        fi
+        echo -e "${GREEN}Removed $environment ($RESOLVED_ARCH).${NC}"
         ;;
 esac

@@ -1,16 +1,49 @@
-# Termux Penv v2.0.1 - Chroot Environment Manager 🛠️
+# Termux Penv v3.0.0 - Chroot Environment Manager 🛠️
 
-**Termux Penv** is a sleek shell script for managing 32-bit and 64-bit chroot environments in Termux. Perfect for cross-compilation and testing apps across architectures, it now supports Pacman-based environments for Arch Linux-style package management. 🚀
+**Termux Penv** is a sleek shell script for managing native Termux chroot environments in Termux. Install a Termux (APT) or Termux Pacman environment for a supported architecture, side by side, for 32-bit/64-bit testing. 🚀
 
 ---
 
 ## Features 🌟
 
-- **Multi-Architecture**: Run 32-bit (`termux32`, `termux-pacman32`) and 64-bit (`termux64`, `termux-pacman64`) environments side-by-side. 🖥️
-- **Cross-Compilation**: Build apps for various CPU architectures. 🔧
-- **Isolated Testing**: Test apps in clean environments for ARMv7, i686, aarch64, or x86_64. 🧪
-- **Pacman Support**: Use `termux-pacman32` and `termux-pacman64` for Arch-style package management. 📦
+- **Any Supported Architecture**: Install `aarch64`, `arm`, `x86_64` or `i686` environments with `--arch` when this device can run them natively. 🖥️
+- **Multi-Architecture**: Keep 64-bit and 32-bit environments of the same CPU family side by side. 🖥️
+- **Auto Detection**: `termux-penv install termux` picks the architecture of this device. 🔍
+- **Isolated Testing**: Test apps in clean Termux environments for the architectures this device can run. 🧪
+- **Pacman Support**: Use `termux-pacman` for Arch-style package management. 📦
 - **Simple Commands**: Install, login, and remove environments with ease. 📜
+
+## Why termux-penv instead of proot-distro? 🤔
+
+[proot-distro](https://github.com/termux/proot-distro) installs full Linux distributions (Alpine, Arch, Debian, Ubuntu, ...) from Docker/registry images and is the right tool for a general-purpose Linux container. It also offers Termux images.
+
+termux-penv is narrower: it installs the real **Termux bootstrap** (APT or Pacman) for a chosen architecture. That is what makes it useful for native work on one device:
+
+- Keep aarch64 (64-bit) and arm/armv7a (32-bit) Termux environments side by side where the kernel supports 32-bit binaries.
+- Build and test 32-bit binaries next to your normal 64-bit Termux, using Termux paths, packages and toolchains instead of a generic distro.
+- Install independent environments per architecture with one tool; each architecture gets its own directory.
+- Get a chroot that behaves like Termux, not like Ubuntu or Alpine.
+
+Use proot-distro when you need a full distro or cross-architecture emulation. Use termux-penv when the point is a native Termux environment.
+
+## Architecture limits ⚠️
+
+Termux bootstrap binaries are Android/bionic binaries. Their ELF interpreter is the device's `/system/bin/linker64` (or `/system/bin/linker`), not a loader included in the bootstrap. A QEMU user-mode emulator cannot replace that with a loader for another architecture, so cross-architecture Termux login is not supported.
+
+| Host (`uname -m`) | aarch64 guest | arm guest | x86_64 guest | i686 guest |
+| --- | --- | --- | --- | --- |
+| aarch64 | native | native* | unsupported | unsupported |
+| armv7l / armv8l | unsupported | native | unsupported | unsupported |
+| x86_64 | unsupported | unsupported | native | native* |
+| i686 / i386 | unsupported | unsupported | unsupported | native |
+
+`*` Requires 32-bit compatibility in the kernel. Some 64-bit-only Android kernels/devices cannot run 32-bit binaries at all.
+
+- A 64-bit chroot on a 32-bit device is unsupported.
+- Different CPU families are unsupported, even with QEMU user packages installed.
+- `termux-penv` rejects an unsupported architecture before starting proot. `--qemu` and `--emulator` do not make Termux cross-architecture work; they are diagnostic options for native environments.
+- Use [proot-distro](https://github.com/termux/proot-distro) for cross-architecture Linux distributions that include their own dynamic loader.
+- Environments created by version 2.x used different names (`termux32`, `termux64`, `termux-pacman32`, `termux-pacman64`); reinstall them with the new `termux` / `termux-pacman` names.
 
 ![Termux Penv in Action](screenshot/termux-penv.jpg)  
 *Screenshot: Termux Penv Script*
@@ -38,20 +71,71 @@ apt install termux-penv -y
 
 ### Syntax
 ```bash
-termux-penv [command] [environment]
+termux-penv [command] [environment] [options] [command...]
 ```
 
 ### Commands
 - `install` (`i`): Set up a chroot environment. 🏗️
 - `login` (`l`): Access a chroot environment. 🔑
 - `remove` (`r`): Delete a chroot environment. 🗑️
-- `_.
+- `help` (`h`): Show usage information. 📖
+
+### Options
+Run `termux-penv login --help` for the full login option list (proot-distro style), including `--arch`, `--user`, `--isolated`, `--shared-home`, `--shared-tmp`, `--bind`, `--hostname`, `--work-dir`, `--env`, `--detach` and more.
+
+By default the chroot uses its own private home directory (`$PREFIX/var/lib/termux_penv/<type>-<arch>/home`) instead of the Termux home. Use `--shared-home` to share the Termux home, like `proot-distro`.
+
+```bash
+termux-penv login termux --shared-home
+termux-penv login termux --isolated --bind /sdcard:/sdcard
+termux-penv login termux -w /home ls -la
+```
+
+### Install a different architecture
+By default `install` picks the architecture matching the device. Use `--arch` to choose another native or 32-bit-compatible architecture:
+
+- `aarch64`: 64-bit ARM
+- `arm`: 32-bit ARM (armv7a)
+- `x86_64`: 64-bit x86
+- `i686`: 32-bit x86
+
+```bash
+termux-penv install termux
+termux-penv install termux --arch arm
+termux-penv install termux-pacman --arch arm
+```
+
+Every architecture is a separate environment, so native 64-bit and 32-bit environments can coexist:
+
+```bash
+termux-penv login termux --arch aarch64
+termux-penv login termux --arch arm
+termux-penv remove termux --arch arm
+```
+
+Without `--arch`, `login` uses this device's architecture when it is installed, otherwise the only installed architecture. Login rejects an architecture the device cannot run natively; it never uses QEMU for the Termux bootstrap.
+
+To replace an existing architecture (for example to refresh the bootstrap), reinstall it:
+
+```bash
+termux-penv install termux --arch aarch64 -r
+```
+
+On a device that cannot run the chosen architecture natively, login stops with an error instead of starting proot (see Architecture limits above).
+
+### Custom bootstrap
+Use `--bootstrap` to install from a specific GitHub release tag or a direct zip archive:
+
+```bash
+termux-penv install termux --bootstrap https://github.com/termux/termux-packages/releases/tag/bootstrap-2026.11.01-r1%2Bapt.android-7
+termux-penv install termux-pacman --arch arm --bootstrap https://mirror.example/bootstrap-arm.zip
+```
+
+A release tag URL is looked up through the GitHub API to find the matching `bootstrap-<arch>.zip` asset; if the API is unavailable, the canonical `<repo>/releases/download/<tag>/bootstrap-<arch>.zip` URL is used. A direct zip URL is used as-is. Custom URLs must use HTTPS, and a URL whose filename clearly names another architecture is rejected. `--bootstrap-url` is an alias.
 
 ### Environments
-- `termux32`: 32-bit environment (ARMv7, i686). 🖥️
-- `termux64`: 64-bit environment (aarch64, x86_64). 💻
-- `termux-pacman32`: 32-bit Pacman-based environment. 📦
-- `termux-pacman64`: 64-bit Pacman-based environment. 📦
+- `termux`: Termux environment with APT. 🖥️
+- `termux-pacman`: Termux environment with Pacman. 📦
 
 ---
 
@@ -59,15 +143,16 @@ termux-penv [command] [environment]
 
 ### 1. Install Environments
 ```bash
-termux-penv install termux64
-termux-penv install termux32
-termux-penv install termux-pacman64
-termux-penv install termux-pacman32
+termux-penv install termux
+termux-penv install termux --arch arm
+termux-penv install termux-pacman
+termux-penv install termux-pacman --arch arm
 ```
 
 ### 2. Cross-Compile (64-bit to 32-bit)
 ```bash
-termux-penv login termux64
+termux-penv install termux --arch arm
+termux-penv login termux --arch arm
 apt install clang gcc make binutils
 CC="clang -target armv7a-linux-androideabi" ./configure --host=arm-linux-androideabi
 make
@@ -75,12 +160,12 @@ make
 
 ### 3. Test Application
 ```bash
-termux-penv login termux32
+termux-penv login termux --arch arm
 ./your-compiled-32bit-binary
 ```
 Or in a Pacman environment:
 ```bash
-termux-penv login termux-pacman32
+termux-penv login termux-pacman --arch arm
 ./your-compiled-32bit-binary
 ```
 
@@ -89,18 +174,19 @@ termux-penv login termux-pacman32
 ## Script Locations 📂
 
 Scripts are stored in `$PREFIX/share/termux-penv`:
-- **Install**: `termux32.sh`, `termux64.sh`, `termux-pacman32.sh`, `termux-pacman64.sh`
-- **Login**: `termux32login.sh`, `termux64login.sh`, `termux-pacman32login.sh`, `termux-pacman64login.sh`
-- **Remove**: `termux32remove.sh`, `termux64remove.sh`, `termux-pacman32remove.sh`, `termux-pacman64remove.sh`
+- **Install**: `termux-install.sh`, `termux-pacman-install.sh`
+- **Login**: `termux-login.sh`, `termux-pacman-login.sh`, `login-common.sh`
+- **Shared**: `env-common.sh` (architecture detection and resolution)
+- **Remove**: handled by `termux-penv` itself
 
 ---
 
 ## Use Cases 🎮
 
-- Cross-compile games, libraries, or system tools. ⚙️
-- Test apps across architectures. 🧪
+- Cross-compile games, libraries, or system tools to 32-bit ARM. ⚙️
+- Test apps across native 32-bit and 64-bit environments. 🧪
 - Develop with Pacman-based package management. 📦
-- Learn CPU architectures or analyze malware. 🔍
+- Inspect how packages behave in a clean Termux environment. 🔍
 
 ---
 
@@ -111,6 +197,8 @@ Scripts are stored in `$PREFIX/share/termux-penv`:
 3. Commit changes: `git commit -m "Add new feature"`
 4. Push: `git push origin feature/new-feature`
 5. Submit a pull request. 🚀
+
+Run `bash tests/run.sh` from the repository root. It uses temporary fake commands and does not touch installed environments.
 
 Report bugs or suggest features via GitHub Issues.
 
@@ -136,5 +224,5 @@ Star the project on GitHub if it boosts your workflow! 🌟
 
 ---
 
-**Version 2.0.1** - Now Fetches latest bootstrap everytime 
+**Version 3.0.0** - one `termux` / `termux-pacman` environment per architecture, automatic architecture detection, `--arch` for install, login and remove
 
