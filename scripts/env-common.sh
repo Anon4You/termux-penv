@@ -59,7 +59,15 @@ check_bootstrap_arch() {
 # Removes a chroot directory and verifies it is really gone.
 remove_chroot() {
     local dir="$1"
-    [ -e "$dir" ] || [ -L "$dir" ] || return 0
+    case "$dir" in
+        ''|/|//|.|..) return 1 ;;
+    esac
+    if [ -L "$dir" ]; then
+        rm -f "$dir"
+        [ ! -e "$dir" ] && [ ! -L "$dir" ]
+        return
+    fi
+    [ -e "$dir" ] || return 0
     chmod -R u+rwX "$dir" 2>/dev/null || true
     rm -rf "$dir"
     [ ! -e "$dir" ] && [ ! -L "$dir" ]
@@ -138,7 +146,7 @@ resolve_github_bootstrap() {
     tag=$(printf '%s' "$tag" | sed 's/+/%2B/g')
 
     api="https://api.github.com/repos/$owner/$repo/releases/tags/$tag"
-    assets=$(curl -s "$api" 2>/dev/null)
+    assets=$(wget -qO- "$api" 2>/dev/null)
 
     if [ -n "$assets" ]; then
         available=$(printf '%s\n' "$assets" |

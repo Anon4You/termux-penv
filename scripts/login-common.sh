@@ -18,9 +18,9 @@ Usage: $prog ${LOGIN_USAGE_CMD:-login} <environment> [options] [command]
 Options:
   -h, --help              Show this help.
   -P, --redirect-ports    Replace privileged port bindings with higher ports.
-  --isolated              Do not bind host filesystem paths.
-  --minimal               Isolated mode with no host bindings except
-                          /dev, /proc and /sys.
+  --isolated              Do not bind /storage, /sbin or /root.
+  --minimal               Isolated mode without System V IPC. The Android
+                          runtime paths (/system, /apex, /vendor) stay bound.
   --shared-home           Bind Termux home to /home inside the chroot.
   --shared-tmp            Bind the Termux tmp directory to /tmp.
   --shared-x11            Bind the Termux X11 socket directory to /tmp/.X11-unix.
@@ -34,7 +34,7 @@ Options:
   --kernel TEXT           Kernel release string reported by uname.
   -w, --work-dir PATH     Initial working directory.
   -e, --env VAR=VALUE     Set an environment variable. Can be repeated.
-  -d, --detach            Start in the background and return immediately.
+  -d, --detach            Start a command in the background and return.
   --get-proot-cmd         Print the proot command and exit.
   --arch ARCH             Chroot architecture: aarch64, arm, x86_64 or i686.
                           Default: this device's arch, or the only installed one.
@@ -86,12 +86,14 @@ login_main() {
             --shared-home) shared_home=1; shift ;;
             --shared-tmp) shared_tmp=1; shift ;;
             --shared-x11) shared_x11=1; shared_tmp=1; shift ;;
-            -b|--bind) [ $# -ge 2 ] || login_usage; binds+=("$2"); shift 2 ;;
+            -b|--bind) [ $# -ge 2 ] && [ -n "$2" ] || { echo "ERROR: --bind needs SRC:DEST." >&2; login_usage 1; }
+                       binds+=("$2"); shift 2 ;;
             --no-link2symlink) link2symlink=0; shift ;;
             --no-sysvipc) sysvipc=0; shift ;;
             --no-kill-on-exit) kill_on_exit=0; shift ;;
             --qemu) use_qemu=1; shift ;;
-            --emulator) [ $# -ge 2 ] || login_usage; emulator="$2"; shift 2 ;;
+            --emulator) [ $# -ge 2 ] && [ -n "$2" ] || { echo "ERROR: --emulator needs a file." >&2; login_usage 1; }
+                        emulator="$2"; shift 2 ;;
             --kernel) [ $# -ge 2 ] || login_usage; kernel="$2"; shift 2 ;;
             -w|--work-dir) [ $# -ge 2 ] || login_usage; workdir="$2"; shift 2 ;;
             -e|--env) [ $# -ge 2 ] || login_usage; envs+=("$2"); shift 2 ;;
@@ -107,7 +109,6 @@ login_main() {
 
     if [ "$minimal" -eq 1 ]; then
         sysvipc=0
-        kernel=""
     fi
 
     if [ "${LOGIN_RUN:-0}" -eq 1 ] && [ ${#cmd[@]} -eq 0 ]; then
@@ -115,11 +116,25 @@ login_main() {
         exit 1
     fi
 
+    if [ "$detach" -eq 1 ] && [ ${#cmd[@]} -eq 0 ]; then
+        echo "ERROR: --detach needs a command (for example: termux-penv login $LOGIN_ENV -d -- sleep 60)." >&2
+        exit 1
+    fi
+
+    case "$workdir" in
+        ''|/*) ;;
+        *) echo "ERROR: --work-dir must be an absolute path inside the chroot." >&2; exit 1 ;;
+    esac
+
     resolve_arch "$arch_spec"
     LOGIN_NEWROOT="$LOGIN_BASE/$LOGIN_PREFIX-$RESOLVED_ARCH/usr"
     if [ ! -d "$LOGIN_NEWROOT" ]; then
         echo "ERROR: $LOGIN_ENV ($RESOLVED_ARCH) is not installed." >&2
         echo "Install it with: termux-penv install $LOGIN_ENV --arch $RESOLVED_ARCH" >&2
+        exit 1
+    fi
+    if [ -L "$LOGIN_NEWROOT" ]; then
+        echo "ERROR: $LOGIN_ENV ($RESOLVED_ARCH) has a symlinked usr directory; reinstall it." >&2
         exit 1
     fi
     guest_arch="$RESOLVED_ARCH"
@@ -167,20 +182,24 @@ login_main() {
     fi
 
     if [ "$isolated" -eq 0 ]; then
-        args+=(-b /system:/system -b /vendor:/vendor -b /data:/data)
         if [ -d /sbin ] && [ -d /root ]; then
             args+=(-b /sbin:/sbin -b /root:/root)
         fi
-        [ -d /apex ] && args+=(-b /apex:/apex)
-        [ -e /linkerconfig/ld.config.txt ] && args+=(-b /linkerconfig/ld.config.txt:/linkerconfig/ld.config.txt)
-        [ -f /property_contexts ] && args+=(-b /property_contexts:/property_contexts)
         [ -d /storage ] && args+=(-b /storage:/storage)
     fi
+
+    [ -d /system ] && args+=(-b /system:/system)
+    [ -d /vendor ] && args+=(-b /vendor:/vendor)
+    [ -d /apex ] && args+=(-b /apex:/apex)
+    [ -e /linkerconfig/ld.config.txt ] && args+=(-b /linkerconfig/ld.config.txt:/linkerconfig/ld.config.txt)
+    [ -f /property_contexts ] && args+=(-b /property_contexts:/property_contexts)
 
     args+=(-b "$LOGIN_NEWROOT:/data/data/com.termux/files/usr/")
     args+=(-b "$LOGIN_NEWROOT:/usr")
     for f in bin etc lib share tmp var; do
-        [ -e "$LOGIN_NEWROOT/$f" ] && args+=(-b "$LOGIN_NEWROOT/$f:/$f")
+        if [ -e "$LOGIN_NEWROOT/$f" ] && [ ! -L "$LOGIN_NEWROOT/$f" ]; then
+            args+=(-b "$LOGIN_NEWROOT/$f:/$f")
+        fi
     done
 
     args+=(-b /dev:/dev -b /proc:/proc)
@@ -209,11 +228,10 @@ login_main() {
         esac
     done
 
+    args+=(--cwd="${workdir:-/home}")
     if [ ${#cmd[@]} -eq 0 ]; then
-        args+=(--cwd="${workdir:-/home}")
         run=(bash -c '/usr/bin/login')
     else
-        args+=(--cwd="${workdir:-.}")
         run=("${cmd[@]}")
     fi
 

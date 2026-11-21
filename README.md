@@ -1,4 +1,4 @@
-# Termux Penv v3.0.0 - Chroot Environment Manager 🛠️
+# Termux Penv v3.1.0 - Chroot Environment Manager 🛠️
 
 **Termux Penv** is a sleek shell script for managing native Termux chroot environments in Termux. Install a Termux (APT) or Termux Pacman environment for a supported architecture, side by side, for 32-bit/64-bit testing. 🚀
 
@@ -43,10 +43,7 @@ Termux bootstrap binaries are Android/bionic binaries. Their ELF interpreter is 
 - Different CPU families are unsupported, even with QEMU user packages installed.
 - `termux-penv` rejects an unsupported architecture before starting proot. `--qemu` and `--emulator` do not make Termux cross-architecture work; they are diagnostic options for native environments.
 - Use [proot-distro](https://github.com/termux/proot-distro) for cross-architecture Linux distributions that include their own dynamic loader.
-- Environments created by version 2.x used different names (`termux32`, `termux64`, `termux-pacman32`, `termux-pacman64`); reinstall them with the new `termux` / `termux-pacman` names.
-
-![Termux Penv in Action](screenshot/termux-penv.jpg)  
-*Screenshot: Termux Penv Script*
+- Environments created by version 2.x used different names (`termux32`, `termux64`, `termux-pacman32`, `termux-pacman64`); `remove` recognizes these legacy names, or reinstall them with the new `termux` / `termux-pacman` names.
 
 ---
 
@@ -84,16 +81,19 @@ termux-penv [command] [environment] [options] [command...]
 ### Options
 Run `termux-penv login --help` for the full login and run option list (proot-distro style), including `--arch`, `--isolated`, `--shared-home`, `--shared-tmp`, `--bind`, `--work-dir`, `--env`, `--detach` and more.
 
-By default the chroot uses its own private home directory (`$PREFIX/var/lib/termux_penv/<type>-<arch>/home`) instead of the Termux home. Use `--shared-home` to share the Termux home, like `proot-distro`.
+By default the chroot uses its own private home directory (`$PREFIX/var/lib/termux_penv/<type>-<arch>/home`) instead of the Termux home. The host `/data` tree is not bound; only the Android runtime paths Termux binaries need (`/system`, `/apex`, `/vendor`, `/linkerconfig`) are shared. Use `--shared-home` to share the Termux home, like `proot-distro`.
+
+`--isolated` drops shared storage and legacy host paths, while keeping the Android runtime paths. `--minimal` is isolated mode without System V IPC. `--detach` starts a command in the background, so it requires a command.
 
 ```bash
 termux-penv login termux --shared-home
 termux-penv login termux --isolated --bind /sdcard:/sdcard
+termux-penv login termux -d -- sleep 60
 termux-penv run termux -w /home -- ls -la
 ```
 
 ### Run one command
-`run` executes one command without the login banner or an interactive shell. It accepts the same options as `login`, but requires a command:
+`run` executes one command without the login banner or an interactive shell. It accepts the same options as `login`, but requires a command. The default working directory is `/home`; `-w` must be an absolute path inside the chroot:
 
 ```bash
 termux-penv run termux uname -m
@@ -130,6 +130,8 @@ To replace an existing architecture (for example to refresh the bootstrap), rein
 ```bash
 termux-penv install termux --arch aarch64 -r
 ```
+
+`remove` also deletes version 2.x legacy directories for the selected environment and architecture.
 
 On a device that cannot run the chosen architecture natively, login stops with an error instead of starting proot (see Architecture limits above).
 
@@ -186,7 +188,7 @@ termux-penv login termux-pacman --arch arm
 Scripts are stored in `$PREFIX/share/termux-penv`:
 - **Install**: `termux-install.sh`, `termux-pacman-install.sh`
 - **Login**: `termux-login.sh`, `termux-pacman-login.sh`, `login-common.sh`
-- **Shared**: `env-common.sh` (architecture detection and resolution)
+- **Shared**: `env-common.sh` (architecture detection and resolution), `install-common.sh` (installer used by both environments)
 - **Remove**: handled by `termux-penv` itself
 
 ---
@@ -234,5 +236,5 @@ Star the project on GitHub if it boosts your workflow! 🌟
 
 ---
 
-**Version 3.0.0** - one `termux` / `termux-pacman` environment per architecture, automatic architecture detection, `--arch` for install, login, run and remove
+**Version 3.1.0** - private chroot home, corrected isolated/minimal bindings, hardened installers, legacy v2 removal, and a 147-check test suite
 

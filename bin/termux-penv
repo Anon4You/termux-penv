@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/env bash
 
 # Script Name: termux-penv
-# Version: 3.0.0
+# Version: 3.1.0
 # Description: Manage Termux chroot environments.
 
 prog=$(basename "$0")
@@ -74,7 +74,7 @@ done
 if [ "$show_banner" -eq 1 ] && [ -t 1 ]; then
     clear
     script_name="Termux-Penv"
-    version="3.0.0"
+    version="3.1.0"
     command -v figlet >/dev/null && figlet -f smslant "$script_name"
     echo "$script_name : V-$version By Alienkrishn [Anon4You]"
     echo ""
@@ -188,17 +188,80 @@ case "$cmd" in
         LOGIN_ENV="$environment"
         LOGIN_PREFIX="$dir_prefix"
         LOGIN_BASE="$program_dir"
-        resolve_arch "$arch_spec"
+        legacy_base="$environment"
+        legacy64=""
+        legacy32=""
+        case "$(detect_arch)" in
+            aarch64|arm*) legacy64=aarch64; legacy32=arm ;;
+            x86_64|i686) legacy64=x86_64; legacy32=i686 ;;
+        esac
+
+        if [ -z "$arch_spec" ]; then
+            has_new=0
+            for d in "$program_dir/$dir_prefix-"*; do
+                [ -d "$d" ] || continue
+                name=${d##*/}
+                name=${name#"$dir_prefix"-}
+                validate_arch "$name" && { has_new=1; break; }
+            done
+            if [ "$has_new" -eq 0 ]; then
+                removed=0
+                for suffix in 32 64; do
+                    d="$program_dir/$legacy_base$suffix"
+                    [ -e "$d" ] || [ -L "$d" ] || continue
+                    echo -e "${BLUE}Removing legacy $environment (${d##*/})...${NC}"
+                    if ! remove_chroot "$d"; then
+                        echo -e "${RED}ERROR: Failed to remove $d.${NC}" >&2
+                        exit 1
+                    fi
+                    removed=1
+                done
+                if [ "$removed" -eq 1 ]; then
+                    echo -e "${GREEN}Removed legacy $environment environment(s).${NC}"
+                    exit 0
+                fi
+            fi
+        fi
+
+        if [ -n "$arch_spec" ]; then
+            validate_arch "$arch_spec" || {
+                echo -e "${RED}ERROR: invalid architecture '$arch_spec' (use aarch64, arm, x86_64 or i686)${NC}" >&2
+                exit 1
+            }
+            RESOLVED_ARCH="$arch_spec"
+        else
+            resolve_arch ""
+        fi
+
         chroot_dir="$program_dir/$dir_prefix-$RESOLVED_ARCH"
-        if [ ! -d "$chroot_dir" ]; then
+        legacy_dir=""
+        case "$RESOLVED_ARCH" in
+            "$legacy64") legacy_dir="$program_dir/$legacy_base"64 ;;
+            "$legacy32") legacy_dir="$program_dir/$legacy_base"32 ;;
+        esac
+
+        if [ ! -d "$chroot_dir" ] &&
+            { [ -z "$legacy_dir" ] || { [ ! -e "$legacy_dir" ] && [ ! -L "$legacy_dir" ]; }; }; then
             echo -e "${RED}ERROR: $environment ($RESOLVED_ARCH) is not installed.${NC}"
             exit 1
         fi
-        echo -e "${BLUE}Removing $environment ($RESOLVED_ARCH)...${NC}"
-        if ! remove_chroot "$chroot_dir"; then
-            echo -e "${RED}ERROR: Failed to remove $chroot_dir.${NC}" >&2
-            exit 1
+
+        if [ -d "$chroot_dir" ]; then
+            echo -e "${BLUE}Removing $environment ($RESOLVED_ARCH)...${NC}"
+            if ! remove_chroot "$chroot_dir"; then
+                echo -e "${RED}ERROR: Failed to remove $chroot_dir.${NC}" >&2
+                exit 1
+            fi
+            echo -e "${GREEN}Removed $environment ($RESOLVED_ARCH).${NC}"
         fi
-        echo -e "${GREEN}Removed $environment ($RESOLVED_ARCH).${NC}"
+
+        if [ -n "$legacy_dir" ] && { [ -e "$legacy_dir" ] || [ -L "$legacy_dir" ]; }; then
+            echo -e "${BLUE}Removing legacy $environment (${legacy_dir##*/})...${NC}"
+            if ! remove_chroot "$legacy_dir"; then
+                echo -e "${RED}ERROR: Failed to remove $legacy_dir.${NC}" >&2
+                exit 1
+            fi
+            echo -e "${GREEN}Removed legacy $environment (${legacy_dir##*/}).${NC}"
+        fi
         ;;
 esac

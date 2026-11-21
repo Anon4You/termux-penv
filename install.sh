@@ -20,7 +20,7 @@ REPO_URL="https://github.com/Anon4You/termux-penv/raw/main"
 # Check for required commands, install if missing
 check_dependencies() {
     printf "${BLUE}Checking dependencies...${NC}\n"
-    for dep in proot wget curl unzip; do
+    for dep in proot wget unzip; do
         if ! command -v "$dep" &> /dev/null; then
             printf "${RED}$dep is not installed. Installing...${NC}\n"
             if ! apt install "$dep" -y; then
@@ -39,28 +39,41 @@ create_directories() {
     mkdir -p "$SHARE_DIR"
 }
 
-# Download and install termux-penv and tp scripts
+# Download everything first, then move it into place.
 install_scripts() {
     printf "${BLUE}Downloading scripts...${NC}\n"
-    scripts=("env-common.sh" "login-common.sh" "termux-install.sh" "termux-pacman-install.sh" "termux-login.sh" "termux-pacman-login.sh")
+    scripts=("env-common.sh" "install-common.sh" "login-common.sh" "termux-install.sh" "termux-pacman-install.sh" "termux-login.sh" "termux-pacman-login.sh")
+    tmp=$(mktemp -d) || {
+        printf "${RED}Failed to create a temporary directory.${NC}\n"
+        exit 1
+    }
+    trap 'rm -rf "$tmp"' EXIT
+
     for script in "${scripts[@]}"; do
         printf "${CYAN}Downloading $script...${NC}\n"
-        if ! wget -q "$REPO_URL/scripts/$script" -O "$SHARE_DIR/$script"; then
+        if ! wget -q "$REPO_URL/scripts/$script" -O "$tmp/$script"; then
             printf "${RED}Failed to download $script.${NC}\n"
             exit 1
         fi
-        chmod +x "$SHARE_DIR/$script"
     done
 
     printf "${CYAN}Downloading termux-penv...${NC}\n"
-    if ! wget -q "$REPO_URL/bin/termux-penv" -O "$BIN_DIR/termux-penv"; then
+    if ! wget -q "$REPO_URL/bin/termux-penv" -O "$tmp/termux-penv"; then
         printf "${RED}Failed to download termux-penv.${NC}\n"
         exit 1
     fi
-    chmod +x "$BIN_DIR/termux-penv"
+    chmod +x "$tmp"/*
+
+    for script in "${scripts[@]}"; do
+        mv -f "$tmp/$script" "$SHARE_DIR/$script"
+    done
+    mv -f "$tmp/termux-penv" "$BIN_DIR/termux-penv"
 
     printf "${CYAN}Creating tp symlink...${NC}\n"
     ln -sf termux-penv "$BIN_DIR/tp"
+
+    rm -rf "$tmp"
+    trap - EXIT
 }
 
 # Main function
