@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/env bash
 
 # Script Name: termux-penv
-# Version: 3.1.0
+# Version: 3.1.1
 # Description: Manage Termux chroot environments.
 
 prog=$(basename "$0")
@@ -74,7 +74,7 @@ done
 if [ "$show_banner" -eq 1 ] && [ -t 1 ]; then
     clear
     script_name="Termux-Penv"
-    version="3.1.0"
+    version="3.1.1"
     command -v figlet >/dev/null && figlet -f smslant "$script_name"
     echo "$script_name : V-$version By Alienkrishn [Anon4You]"
     echo ""

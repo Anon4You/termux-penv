@@ -137,6 +137,11 @@ login_main() {
         echo "ERROR: $LOGIN_ENV ($RESOLVED_ARCH) has a symlinked usr directory; reinstall it." >&2
         exit 1
     fi
+    if [ "$LOGIN_ENV" = "termux" ]; then
+        apt_cache="${LOGIN_NEWROOT%/usr}/data/data/com.termux/cache/apt/archives/partial"
+        mkdir -p "$apt_cache" ||
+            echo "WARNING: cannot create $apt_cache; apt install/upgrade may fail." >&2
+    fi
     guest_arch="$RESOLVED_ARCH"
     host_arch=$(uname -m)
 

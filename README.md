@@ -1,4 +1,4 @@
-# Termux Penv v3.1.0 - Chroot Environment Manager 🛠️
+# Termux Penv v3.1.1 - Chroot Environment Manager 🛠️
 
 **Termux Penv** is a sleek shell script for managing native Termux chroot environments in Termux. Install a Termux (APT) or Termux Pacman environment for a supported architecture, side by side, for 32-bit/64-bit testing. 🚀
 
@@ -236,5 +236,5 @@ Star the project on GitHub if it boosts your workflow! 🌟
 
 ---
 
-**Version 3.1.0** - private chroot home, corrected isolated/minimal bindings, hardened installers, legacy v2 removal, and a 147-check test suite
+**Version 3.1.1** - restores `apt install` / `apt upgrade` inside chroots, plus private chroot home and hardened installers
 

@@ -160,6 +160,13 @@ assert_contains 'arg=echo' "$proot_log" 'command name kept'
 assert_contains 'arg=a b' "$proot_log" 'command argument kept'
 if grep -Fq 'arg=sh' "$proot_log"; then fail 'command was passed through sh -c'; else pass; fi
 
+# apt writes its archive cache under /data/data/com.termux/cache.
+if [ -d "$program_dir/termux-$host/data/data/com.termux/cache/apt/archives/partial" ]; then
+    pass
+else
+    fail 'login did not create the apt cache directory'
+fi
+
 # run: execute one command without the login banner.
 : > "$proot_log"
 PROOT_LOG="$proot_log" "$PREFIX/bin/termux-penv" run termux --arch "$host" echo 'a b' >"$tmp/out" 2>"$tmp/err"
